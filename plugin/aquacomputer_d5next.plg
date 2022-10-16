@@ -1,0 +1,185 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+  <!ENTITY name      "aquacomputer-d5next-hwmon">
+  <!ENTITY author    "Peuuuur Noel">
+  <!ENTITY version   "2022.10.16">
+  <!ENTITY gitURL    "https://raw.githubusercontent.com/Peuuuur-Noel/unraid-aquacomputer-d5next/master">
+  <!ENTITY pluginURL "&gitURL;/&name;.plg">
+  <!ENTITY plugin    "/boot/config/plugins/&name;">
+  <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
+  <!ENTITY backup    "/boot/config/plugins/&name;/backup">
+  <!ENTITY packages  "/boot/config/plugins/&name;/packages">
+]>
+
+<PLUGIN  name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.11.0-rc1">
+
+<CHANGES>
+
+###2022.10.16
+- Initial release
+- Driver version 78ce604 (https://github.com/aleksamagicka/aquacomputer_d5next-hwmon/commit/78ce6047c62825a8ace358c8b2e1a9753d257527)
+
+</CHANGES>
+
+<FILE Name="&emhttp;/README.md">
+<INLINE>
+**Aquacomputer D5 Next hwmon**
+
+This package contains replace current Aqua Computer D5 Next driver to add support of missing devices.
+https://github.com/aleksamagicka/aquacomputer_d5next-hwmon
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE>
+
+download() {
+# Download package
+if wget -q -nc --show-progress --progress=bar:force:noscroll -O "&packages;/${KERNEL_V%%-*}/${LAT_PACKAGE}" "${DL_URL}/${LAT_PACKAGE}" ; then
+  wget -q -nc --show-progress --progress=bar:force:noscroll -O "&packages;/${KERNEL_V%%-*}/${LAT_PACKAGE}.md5" "${DL_URL}/${LAT_PACKAGE}.md5"
+  if [ "$(md5sum &packages;/${KERNEL_V%%-*}/${LAT_PACKAGE} | awk '{print $1}')" != "$(cat &packages;/${KERNEL_V%%-*}/${LAT_PACKAGE}.md5 | awk '{print $1}')" ]; then
+    echo
+    echo "-----ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR------"
+    echo "--------------------------------CHECKSUM ERROR!---------------------------------"
+    rm -rf &plugin; &emhttp;
+    exit 1
+  fi
+  echo
+  echo "----Successfully downloaded Aqua Computer D5 Next package, please wait...!-----"
+else
+  echo
+  echo "-----ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR - ERROR-----"
+  echo "-----------------Can't download Aqua Computer D5 Next package------------------"
+  rm -rf &plugin; &emhttp;
+  exit 1
+fi
+}
+
+check() {
+if ! ls -1 &packages;/${KERNEL_V%%-*}/ | grep -q "${PACKAGE}" ; then
+  LAT_PACKAGE="$(wget -qO- https://api.github.com/repos/Peuuuur-Noel/unraid-aquacomputer-d5next/releases/tags/${KERNEL_V} | jq -r '.assets[].name' | grep "${PACKAGE}" | grep -E -v '\.md5$' | sort -V | tail -1)"
+  echo
+  echo "----------Downloading Aqua Computer D5 Next package, please wait...!----------"
+  echo "----------This could take some time, please don't close this window!----------"
+  download
+else
+  echo
+  echo "-----------------Aqua Computer D5 Next package found locally!-----------------"
+fi
+}
+
+install() {
+# Install package
+/sbin/installpkg "&packages;/${KERNEL_V%%-*}/${PACKAGE}*.txz"
+depmod -a
+}
+
+activate() {
+# Modprobe module
+/sbin/modprobe aquacomputer_d5next
+}
+
+# Define Variables
+KERNEL_V="$(uname -r)"
+PACKAGE="aquacomputer_d5next"
+DL_URL="https://github.com/Peuuuur-Noel/unraid-aquacomputer-d5next/releases/download/$KERNEL_V"
+
+if [ ! -d "&packages;/${KERNEL_V%%-*}" ]; then
+  mkdir -p "&packages;/${KERNEL_V%%-*}"
+fi
+
+# Check for old packages
+rm -rf $(ls -d &packages;/* | grep -v "${KERNEL_V%%-*}")
+
+if [ ! -f "&plugin;/&name;.png" ]; then
+  wget -q -nc --show-progress --progress=bar:force:noscroll -O "&plugin;/&name;.png" "https://raw.githubusercontent.com/Peuuuur-Noel/unraid-aquacomputer-d5next/master/plugin/aquacomputer.png"
+fi
+
+# Check if package is already downloaded
+check
+
+# Check if package module is already installed
+if [ ! modinfo aquacomputer_d5next -0 >/dev/null 2>&amp;1 ] ; then
+  echo
+  echo "----------Installing Aqua Computer D5 Next package, please wait...!-----------"
+  /sbin/installpkg "&packages;/${KERNEL_V%%-*}/${PACKAGE}*.txz"
+  depmod -a
+  /sbin/modprobe aquacomputer_d5next
+  echo
+  echo "----------Installation of Aqua Computer D5 Next package successful------------"
+  echo
+else
+  # remove previous version
+  echo
+  echo "------------Removing previous version if needed, please wait...!--------------"
+  /sbin/modprobe -r aquacomputer_d5next
+  echo "/lib/modules/${KERNEL_V}/kernel/drivers/hwmon/aquacomputer_d5next.ko.xz"
+  if [ -f "/lib/modules/${KERNEL_V}/kernel/drivers/hwmon/aquacomputer_d5next.ko.xz" ]; then
+    echo "Backup \"/lib/modules/${KERNEL_V}/kernel/drivers/hwmon/aquacomputer_d5next.ko.xz\" to \"&backup;/\""
+    mkdir -p "&backup;/"
+    mv "/lib/modules/${KERNEL_V}/kernel/drivers/hwmon/aquacomputer_d5next.ko.xz" "&backup;/"
+  fi
+  echo "/lib/modules/${KERNEL_V}/extra/aquacomputer_d5next.ko.xz"
+  if [ -f "/lib/modules/${KERNEL_V}/extra/aquacomputer_d5next.ko.xz" ]; then
+    echo "Removing \"/lib/modules/${KERNEL_V}/extra/aquacomputer_d5next.ko.x\""
+    rm -f "/lib/modules/${KERNEL_V}/extra/aquacomputer_d5next.ko.xz"
+  fi
+  echo
+  echo "----------Installing Aqua Computer D5 Next package, please wait...!-----------"
+  /sbin/installpkg "&packages;/${KERNEL_V%%-*}/${PACKAGE}*.txz"
+  depmod -a
+  /sbin/modprobe aquacomputer_d5next
+  echo
+  echo "-----------Installation of Aqua Computer D5 Next package successful-----------"
+fi
+
+Install icon
+if [ ! -f "&emhttp;/images/&name;.png" ]; then
+  if [ ! -d "&emhttp;/images" ]; then
+    mkdir -p &emhttp;/images
+  fi
+  cp &plugin;/&name;.png &emhttp;/images/
+fi
+
+# Fix for broken sensor readings
+if [ -f /boot/config/plugins/dynamix.system.temp/sensors.conf ]; then
+  sed -i '/quadro-hid/,+1d' /boot/config/plugins/dynamix.system.temp/sensors.conf
+fi
+if [ -f /etc/sensors.d/sensors.conf ]; then
+  sed -i '/quadro-hid/,+1d' /etc/sensors.d/sensors.conf
+fi
+
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+
+KERNEL_V="$(uname -r)"
+echo "----------------------------------------------"
+echo "--Uninstalling Aqua Computer D5 Next package--"
+echo "----------------------------------------------"
+# Remove plugin related files
+/sbin/modprobe -r aquacomputer_d5next
+echo "/lib/modules/${KERNEL_V}/extra/aquacomputer_d5next.ko.xz"
+if [ -f "/lib/modules/${KERNEL_V}/extra/aquacomputer_d5next.ko.xz" ]; then
+  echo "Removing \"/lib/modules/${KERNEL_V}/extra/aquacomputer_d5next.ko.x\""
+  rm -f "/lib/modules/${KERNEL_V}/extra/aquacomputer_d5next.ko.xz"
+fi
+echo "&backup;/aquacomputer_d5next.ko.xz"
+if [ -f "&backup;/aquacomputer_d5next.ko.xz" ]; then
+  echo "Restoring \"&backup;/aquacomputer_d5next.ko.xz\" to \"/lib/modules/${KERNEL_V}/kernel/drivers/hwmon/\""
+  mv "&backup;/aquacomputer_d5next.ko.xz" "/lib/modules/${KERNEL_V}/kernel/drivers/hwmon/"
+fi
+depmod -a
+/sbin/modprobe aquacomputer_d5next
+rm -rf &emhttp; &plugin;
+echo
+echo "-------------------------------------------------------------------------"
+echo "--Aqua Computer D5 Next package uninstalled, please reboot your server!--"
+echo "-------------------------------------------------------------------------"
+echo
+
+</INLINE>
+</FILE>
+</PLUGIN>
