@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
   <!ENTITY name      "aquacomputer-d5next-hwmon">
   <!ENTITY author    "Peuuuur Noel">
-  <!ENTITY version   "2022.10.16">
+  <!ENTITY version   "2022.11.07">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/Peuuuur-Noel/unraid-aquacomputer-d5next/master">
   <!ENTITY pluginURL "&gitURL;/&name;.plg">
   <!ENTITY plugin    "/boot/config/plugins/&name;">
@@ -15,8 +15,13 @@
 
 <CHANGES>
 
+###2022.11.07
+- Linux kernel version 5.19.17 (Unraid 6.11.2)
+- Driver version d10c878 (https://github.com/aleksamagicka/aquacomputer_d5next-hwmon/commit/d10c87866353412c714c7de5915a299c7088ffa9)
+
 ###2022.10.16
 - Initial release
+- Linux kernel version 5.19.14 (Unraid 6.11.1)
 - Driver version 78ce604 (https://github.com/aleksamagicka/aquacomputer_d5next-hwmon/commit/78ce6047c62825a8ace358c8b2e1a9753d257527)
 
 </CHANGES>
